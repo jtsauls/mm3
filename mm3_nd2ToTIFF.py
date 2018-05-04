@@ -55,11 +55,6 @@ if __name__ == "__main__":
     '''
 
     # hard coded parameters
-    number_of_rows = 1
-    # crop out the area between these two y points. Leave empty for no cropping.
-    # if there is more than one row, make a list of pairs
-    vertical_crop = [] # [[y1_min, y1_max], [y2_min, y2_max]]
-    #vertical_crop = [0.,0.9] # [[y1_min, y1_max], [y2_min, y2_max]]
 
     # number between 0 and 9, 0 is no compression, 9 is most compression.
     tif_compress = 5
@@ -113,6 +108,10 @@ if __name__ == "__main__":
     # cropping
     try:
         vertical_crop = [p['crop_ymin'],p['crop_ymax']]
+        if len(np.array(vertical_crop).shape) == 1:
+            number_of_rows = 1
+        else:
+            number_of_rows = 2
     except KeyError:
         pass
 
@@ -218,8 +217,8 @@ if __name__ == "__main__":
                         # for just a simple crop
                         if number_of_rows == 1:
                             nc, H, W = image_data.shape
-                            ylo = int(vertical_crop[0]*H)
-                            yhi = int(vertical_crop[1]*H)
+                            ylo = int(vertical_crop[0])
+                            yhi = int(vertical_crop[1])
                             image_data = image_data[:, ylo:yhi, :]
 
                             # save the tiff
@@ -230,7 +229,12 @@ if __name__ == "__main__":
                         # for dealing with two rows of channel
                         elif number_of_rows == 2:
                             # cut and save top row
-                            image_data_one = image_data[:,vertical_crop[0][0]:vertical_crop[0][1],:]
+                            ylo_1 = int(vertical_crop[0][0])
+                            yhi_1 = int(vertical_crop[0][1])
+                            ylo_2 = int(vertical_crop[1][0])
+                            yhi_2 = int(vertical_crop[1][1])
+
+                            image_data_one = image_data[:,ylo_1:yhi_1,:]
                             tif_filename = file_prefix + "_t%04dxy%02d_1.tif" % (t, fov)
                             information('Saving %s.' % tif_filename)
                             tiff.imsave(os.path.join(TIFF_dir, tif_filename), image_data_one, description=metadata_json, compress=tif_compress, photometric='minisblack')
@@ -238,7 +242,7 @@ if __name__ == "__main__":
                             # cut and save bottom row
                             metadata_t['fov'] = fov # update metdata
                             metadata_json = json.dumps(metadata_t)
-                            image_data_two = image_data[:,vertical_crop[1][0]:vertical_crop[1][1],:]
+                            image_data_two = image_data[:,ylo_2:yhi_2,:]
                             tif_filename = file_prefix + "_t%04dxy%02d_2.tif" % (t, fov)
                             information('Saving %s.' % tif_filename)
                             tiff.imsave(os.path.join(TIFF_dir, tif_filename), image_data_two, description=metadata_json, compress=tif_compress, photometric='minisblack')

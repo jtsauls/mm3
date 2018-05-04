@@ -255,8 +255,8 @@ def plot_lineages_byfov(lineages,cells,fileoutspl, color='black', lw=0.5, ax_hei
         rect = [0.,0.,1.,0.98]
         gs.tight_layout(fig,rect=rect)
         fileout = "{}_xy{:03d}.pdf".format(fileoutspl,fov)
-        print "{:<20s}{:<s}".format('fileout',fileout)
         fig.savefig(fileout,bbox_inches='tight',pad_inches=0)
+        print "{:<20s}{:<s}".format('fileout',fileout)
         plt.close('all')
     return
 
@@ -534,8 +534,8 @@ def plot_lineage_with_growth_rate(lineage, cells, fileoutspl, stitch=False, colo
     rect = [0.,0.,1.,0.98]
     gs.tight_layout(fig,rect=rect)
     fileout = "{}_xy{:03d}p{:04d}t{:d}-{:d}.pdf".format(fileoutspl,fov,peak,tstart,tend)
-    print "{:<20s}{:<s}".format('fileout',fileout)
     fig.savefig(fileout,bbox_inches='tight',pad_inches=0)
+    print "{:<20s}{:<s}".format('fileout',fileout)
     plt.close('all')
     return
 
@@ -728,8 +728,8 @@ def plot_lineage_variables(lineage, cells, fileoutspl, attrdict=None, stitch=Fal
     rect = [0.,0.,1.,0.98]
     gs.tight_layout(fig,rect=rect)
     fileout = "{}_xy{:03d}p{:04d}t{:d}-{:d}.pdf".format(fileoutspl,fov,peak,tstart,tend)
-    print "{:<20s}{:<s}".format('fileout',fileout)
     fig.savefig(fileout,bbox_inches='tight',pad_inches=0)
+    print "{:<20s}{:<s}".format('fileout',fileout)
     plt.close('all')
     return
 
@@ -1040,8 +1040,8 @@ def plot_lineage_correlations(lineage, cells, fileoutspl, attrdict=None, stitch=
     rect = [0.,0.,1.,0.92]
     gs.tight_layout(fig,rect=rect, w_pad=0.1, h_pad=0.1)
     fileout = "{}_xy{:03d}p{:04d}t{:d}-{:d}.pdf".format(fileoutspl,fov,peak,tstart,tend)
-    print "{:<20s}{:<s}".format('fileout',fileout)
     fig.savefig(fileout,bbox_inches='tight',pad_inches=0)
+    print "{:<20s}{:<s}".format('fileout',fileout)
     plt.close('all')
     return
 
@@ -1204,8 +1204,8 @@ def plot_lineages_acf_old(lineages, cells, fileoutspl, fovs=None, attrdict=None,
     rect = [0.,0.,1.,0.92]
     gs.tight_layout(fig,rect=rect, w_pad=0.1, h_pad=0.1)
     fileout = "{}.pdf".format(fileoutspl)
-    print "{:<20s}{:<s}".format('fileout',fileout)
     fig.savefig(fileout,bbox_inches='tight',pad_inches=0)
+    print "{:<20s}{:<s}".format('fileout',fileout)
     plt.close('all')
     return
 
@@ -1229,7 +1229,8 @@ def get_pearsonr_piecewise_vectors(lag, vectors):
             pairs.append([v[j],v[j+lag]])
 
     pairs = np.array(pairs, dtype=np.float)
-    r, pvalue = pearsonr(pairs[:,0], pairs[:,1])
+    #r, pvalue = pearsonr(pairs[:,0], pairs[:,1])
+    r, pvalue = spearmanr(pairs[:,0], pairs[:,1])
     return r
 
 def plot_lineages_acf(lineages, cells, fileout, attrY, fovs=None, attrdict=None, color='black', lw=0.5, ms=2, xticks_max=None, yticks_max=None, xformat='{x:.2g}', yformat='{x:.2g}'):
@@ -1277,7 +1278,8 @@ def plot_lineages_acf(lineages, cells, fileout, attrY, fovs=None, attrdict=None,
     # get label data
     if (islist):
         axis_labelx = "time [min]"
-        tau_mean = np.mean([cell.tau for cell in cells.values()])
+        mytab = np.array([cell.tau for cell in cells.values()], dtype=np.float)
+        tau_mean = np.mean(mytab)
     else:
         axis_labelx = "generation"
         tau_mean = 1.
@@ -1395,8 +1397,8 @@ def plot_lineages_acf(lineages, cells, fileout, attrY, fovs=None, attrdict=None,
     rect = [0.,0.,1.,0.92]
     fig.tight_layout(rect=rect, w_pad=0.1, h_pad=0.1)
     #fileout = "{}.pdf".format(fileoutspl)
-    print "{:<20s}{:<s}".format('fileout',fileout)
     fig.savefig(fileout,bbox_inches='tight',pad_inches=0)
+    print "{:<20s}{:<s}".format('fileout',fileout)
     plt.close('all')
     return
 
@@ -1469,8 +1471,8 @@ def plot_distributions(cells, attrdict, fileout, color='darkblue', nbins_max=8):
 
     rect = [0.,0.,1.,0.98]
     gs.tight_layout(fig,rect=rect)
-    print "{:<20s}{:<s}".format('fileout',fileout)
     fig.savefig(fileout,bbox_inches='tight',pad_inches=0)
+    print "{:<20s}{:<s}".format('fileout',fileout)
     plt.close('all')
 
     return
@@ -1598,8 +1600,8 @@ def plot_cross_correlations(cells, attrdict, fileout, color1='darkblue', color2=
 
     rect = [0.,0.,1.,0.98]
     #gs.tight_layout(fig,rect=rect)
-    print "{:<20s}{:<s}".format('fileout',fileout)
     fig.savefig(fileout,bbox_inches='tight',pad_inches=0)
+    print "{:<20s}{:<s}".format('fileout',fileout)
     plt.close('all')
 
     return
@@ -1702,13 +1704,13 @@ def plot_autocorrelations(cells, attrdict, fileout, color1='darkblue', color2='b
 
     rect = [0.,0.,1.,0.98]
     gs.tight_layout(fig,rect=rect)
-    print "{:<20s}{:<s}".format('fileout',fileout)
     fig.savefig(fileout,bbox_inches='tight',pad_inches=0)
+    print "{:<20s}{:<s}".format('fileout',fileout)
     plt.close('all')
 
     return
 
-def plot_scatter_attrXY(cells, attrX, attrY, fileout, attrdict, color='darkblue', scatter_max_pts=1000, bin_min=10, bin_method='median', lw=0.5, ms=2, xticks_max=None, yticks_max=None, xformat='{x:.2g}', yformat='{x:.2g}'):
+def plot_scatter_attrXY(cells, attrX, attrY, fileout, attrdict, color='darkblue', scatter_max_pts=1000, bin_min=10, bin_method='median', lw=0.5, ms=2, xticks_max=None, yticks_max=None, xformat='{x:.2g}', yformat='{x:.2g}', ylims=[None,None]):
     fig = plt.figure(num='none',facecolor='w', figsize=(4,3))
     ax = fig.gca()
 
@@ -1764,10 +1766,12 @@ def plot_scatter_attrXY(cells, attrX, attrY, fileout, attrdict, color='darkblue'
     Xb = res['x']
     Yb = res['y']
     err = res['err']
-    ax.plot(Xb,Yb,'-', lw=3*lw, color='k')
+    ax.plot(Xb,Yb,'o-', ms=min(5,2*ms),marker='s',lw=3*lw, color='k')
     ax.plot(Xb,Yb+err,'--', lw=lw, color='k')
     ax.plot(Xb,Yb-err,'--', lw=lw, color='k')
 
+    # limits
+    ax.set_ylim(ylims)
     # axes decoration
     try:
         ax.set_xlabel(attrdict[attrX]['label'], fontsize='medium')
@@ -1790,8 +1794,8 @@ def plot_scatter_attrXY(cells, attrX, attrY, fileout, attrdict, color='darkblue'
 
     rect = [0.,0.,1.,0.98]
     fig.tight_layout(rect=rect)
-    print "{:<20s}{:<s}".format('fileout',fileout)
     fig.savefig(fileout,bbox_inches='tight',pad_inches=0)
+    print "{:<20s}{:<s}".format('fileout',fileout)
     plt.close('all')
     return
 

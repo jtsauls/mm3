@@ -172,6 +172,16 @@ if __name__ == "__main__":
 
         mm3.information('Got results from analyzed images.')
 
+        # temp code for solving fov inconsistency issue in double row images - START
+        mm3.information('Checking fov inconsistency in FOV.')
+        for fn in analyzed_imgs.keys():
+            fov_fname = mm3.get_fov(fn)
+            fov = analyzed_imgs[fn]['fov']
+            if (fov != fov_fname):
+                mm3.information("Correcting fov for {}".format(fn))
+                analyzed_imgs[fn]['fov'] = fov_fname
+        # temp code for solving fov inconsistency issue in double row images - END
+
         # save metadata to a .pkl and a human readable txt file
         mm3.information('Saving metadata from analyzed images...')
         with open(os.path.join(p['ana_dir'], 'TIFF_metadata.pkl'), 'wb') as tiff_metadata:

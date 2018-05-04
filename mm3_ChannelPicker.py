@@ -18,6 +18,7 @@ import matplotlib as mpl
 # mpl.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from matplotlib.figure import figaspect
 
 # global settings mpl
 plt.rcParams['axes.linewidth']=0.5
@@ -72,11 +73,16 @@ def fov_plot_channels(fov_id, crosscorrs, specs, outputdir='.',phase_plane='c1')
 
     # set up figure for user assited choosing
     n_peaks = len(specs[fov_id].keys())
+    #axw,axh = figaspect(4)
     axw=1
     axh=4*axw
     nrows=3
     ncols=int(n_peaks)
-    fig = plt.figure(num='none', facecolor='w',figsize=(ncols*axw,nrows*axh))
+    figw = ncols*axw
+    figh = nrows*axh
+    maxpxw=1000.
+    dpi = maxpxw/figw
+    fig = plt.figure(num='none', facecolor='w',figsize=(figw,figh), dpi=dpi)
     gs = gridspec.GridSpec(nrows,ncols,wspace=0.5,hspace=0.1,top=0.90)
 
     # plot the peaks peak by peak using sorted list
@@ -102,7 +108,7 @@ def fov_plot_channels(fov_id, crosscorrs, specs, outputdir='.',phase_plane='c1')
         ax=axhi
         ax.imshow(first_img,cmap=plt.cm.gray, interpolation='nearest')
         ax.axis('off')
-        ax.set_title(str(peak_id), fontsize = 12)
+        ax.set_title(str(peak_id), fontsize = 'medium')
         if n == 0:
             ax.set_ylabel("first time point")
 
@@ -132,7 +138,7 @@ def fov_plot_channels(fov_id, crosscorrs, specs, outputdir='.',phase_plane='c1')
         if crosscorrs: # don't try to plot if it's not there.
             ccs = peak_xc['ccs'] # list of cc values
             ax.plot(ccs,range(len(ccs)))
-            ax.set_title('avg=%1.2f' % peak_xc['cc_avg'], fontsize = 8)
+            ax.set_title('avg=%1.2f' % peak_xc['cc_avg'], fontsize = 'small')
         else:
             ax.plot(np.zeros(10), range(10))
 
@@ -145,7 +151,7 @@ def fov_plot_channels(fov_id, crosscorrs, specs, outputdir='.',phase_plane='c1')
             ax.set_ylabel("time index, CC on X")
 
 
-    fig.suptitle("FOV {:d}".format(fov_id),fontsize=14)
+    fig.suptitle("FOV {:d}".format(fov_id),fontsize='large')
     fileout=os.path.join(outputdir,'fov_xy{:03d}.pdf'.format(fov_id))
     fig.savefig(fileout,bbox_inches='tight',pad_inches=0)
     plt.close('all')
@@ -265,7 +271,7 @@ def fov_choose_channels_UI(fov_id, crosscorrs, specs, UI_images):
         if crosscorrs: # don't try to plot if it's not there.
             ccs = peak_xc['ccs'] # list of cc values
             ax[-1].plot(ccs, range(len(ccs)))
-            ax[-1].set_title('avg=%1.2f' % peak_xc['cc_avg'], fontsize = 8)
+            ax[-1].set_title('avg=%1.2f' % peak_xc['cc_avg'], fontsize = 'x-small')
         else:
             ax[-1].plot(np.zeros(10), range(10))
 
