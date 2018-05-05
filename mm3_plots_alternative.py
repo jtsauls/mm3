@@ -1229,8 +1229,8 @@ def get_pearsonr_piecewise_vectors(lag, vectors):
             pairs.append([v[j],v[j+lag]])
 
     pairs = np.array(pairs, dtype=np.float)
-    #r, pvalue = pearsonr(pairs[:,0], pairs[:,1])
-    r, pvalue = spearmanr(pairs[:,0], pairs[:,1])
+    r, pvalue = pearsonr(pairs[:,0], pairs[:,1])
+    #r, pvalue = spearmanr(pairs[:,0], pairs[:,1])
     return r
 
 def plot_lineages_acf(lineages, cells, fileout, attrY, fovs=None, attrdict=None, color='black', lw=0.5, ms=2, xticks_max=None, yticks_max=None, xformat='{x:.2g}', yformat='{x:.2g}'):
@@ -1386,6 +1386,8 @@ def plot_lineages_acf(lineages, cells, fileout, attrY, fovs=None, attrdict=None,
     # adjust plot parameters
     ax.tick_params(axis='x', which='both', bottom='on', top='off', labelsize='xx-small')
     ax.tick_params(axis='y', which='both', left='on', right='off', labelsize='xx-small')
+    if not islist:
+        ax.xaxis.set_major_locator(matplotlib.ticker.IndexLocator(1,0))
     ax.xaxis.set_major_formatter(matplotlib.ticker.StrMethodFormatter('{x:.0f}'))
     ax.yaxis.set_major_formatter(matplotlib.ticker.StrMethodFormatter('{x:.2g}'))
     ax.spines['right'].set_visible(False)
