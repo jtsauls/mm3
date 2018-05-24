@@ -51,11 +51,12 @@ if __name__ == "__main__":
     param_file_path = 'yaml_templates/params_SJ110_100X.yaml'
     user_spec_fovs = []
     sub_plane = 'c1'
+    nproc = 2
 
     # get switches and parameters
     try:
-        unixoptions="f:o:c:"
-        gnuoptions=["paramfile=","fov=","phase-plane="]
+        unixoptions="f:o:c:j:"
+        gnuoptions=["paramfile=","fov=","phase-plane=","nproc="]
         opts, args = getopt.getopt(sys.argv[1:],unixoptions,gnuoptions)
     except getopt.GetoptError:
         mm3.warning('No arguments detected (-f -o -c), using hardcoded parameters.')
@@ -72,6 +73,11 @@ if __name__ == "__main__":
                 raise ValueError
         if opt in ['-c',"--phase-plane"]:
             sub_plane = arg # this should be a postfix c1, c2, c3, etc.
+        if opt in ['-j', '--nproc']:
+            try:
+                nproc = int(arg)
+            except ValueError:
+                mm3.warning("Could not convert \"{}\" to an integer".format(arg))
 
     # Load the project parameters file
     mm3.information ('Loading experiment parameters.')
@@ -138,7 +144,7 @@ if __name__ == "__main__":
         for fov_id in fov_id_list:
             # send to function which will create empty stack for each fov.
             subtraction_result = mm3.subtract_fov_stack(fov_id, specs,
-                                                        color=sub_plane, method=sub_method)
+                                                        color=sub_plane, method=sub_method, nproc=nproc)
         mm3.information("Finished subtraction.")
 
     # Else just end, they only wanted to do empty averaging.

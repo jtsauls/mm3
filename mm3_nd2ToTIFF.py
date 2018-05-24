@@ -113,6 +113,7 @@ if __name__ == "__main__":
         else:
             number_of_rows = 2
     except KeyError:
+        sys.exit("Wrong argument for \"crop_ymin\" and \"crop_ymax\"")
         pass
 
     # assign shorthand directory names
@@ -233,17 +234,21 @@ if __name__ == "__main__":
                             yhi_1 = int(vertical_crop[0][1])
                             ylo_2 = int(vertical_crop[1][0])
                             yhi_2 = int(vertical_crop[1][1])
+                            fov_1 = 2*fov-1
+                            fov_2 = 2*fov
 
                             image_data_one = image_data[:,ylo_1:yhi_1,:]
-                            tif_filename = file_prefix + "_t%04dxy%02d_1.tif" % (t, fov)
+                            metadata_t['fov']=fov_1
+                            metadata_json = json.dumps(metadata_t)
+                            tif_filename = file_prefix + "_t%04dxy%02d.tif" % (t, fov_1)
                             information('Saving %s.' % tif_filename)
                             tiff.imsave(os.path.join(TIFF_dir, tif_filename), image_data_one, description=metadata_json, compress=tif_compress, photometric='minisblack')
 
                             # cut and save bottom row
-                            metadata_t['fov'] = fov # update metdata
-                            metadata_json = json.dumps(metadata_t)
                             image_data_two = image_data[:,ylo_2:yhi_2,:]
-                            tif_filename = file_prefix + "_t%04dxy%02d_2.tif" % (t, fov)
+                            metadata_t['fov']=fov_2
+                            metadata_json = json.dumps(metadata_t)
+                            tif_filename = file_prefix + "_t%04dxy%02d.tif" % (t, fov_2)
                             information('Saving %s.' % tif_filename)
                             tiff.imsave(os.path.join(TIFF_dir, tif_filename), image_data_two, description=metadata_json, compress=tif_compress, photometric='minisblack')
 
@@ -253,4 +258,4 @@ if __name__ == "__main__":
                         tiff.imsave(os.path.join(TIFF_dir, tif_filename), image_data, description=metadata_json, compress=tif_compress, photometric='minisblack')
 
                     # increase FOV counter
-                    fov += 1
+                    #fov += 1

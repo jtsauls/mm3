@@ -38,11 +38,12 @@ if __name__ == "__main__":
     param_file_path = 'yaml_templates/params_SJ110_100X.yaml'
     cell_filename = 'continuous_lineages.pkl'
     cell_file_path = None
+    nproc = 2
 
     # get switches and parameters
     try:
-        unixoptions="f:c:"
-        gnuoptions=["paramfile=","cellfile="]
+        unixoptions="f:c:j:"
+        gnuoptions=["paramfile=","cellfile=","nproc="]
         opts, args = getopt.getopt(sys.argv[1:],unixoptions,gnuoptions)
     except getopt.GetoptError:
         mm3.warning('No arguments detected (-f -c), using hardcoded parameters.')
@@ -53,6 +54,11 @@ if __name__ == "__main__":
         if opt in ['-c',"--cellfile="]:
             cell_file_path = arg
             cell_filename = os.path.basename(cell_file_path)
+        if opt in ['-j', '--nproc']:
+            try:
+                nproc = int(arg)
+            except ValueError:
+                mm3.warning("Could not convert \"{}\" to an integer".format(arg))
 
     # Load the project parameters file & initialized the helper library
     p = mm3.init_mm3_helpers(param_file_path)
