@@ -286,6 +286,7 @@ if __name__ == "__main__":
     parser.add_argument('--trunc',  nargs=2, metavar='t', type=int, help='Make a truncated pkl file for debugging purpose.')
     parser.add_argument('--nofilters',  action='store_true', help='Disable the filters.')
     parser.add_argument('--nocomputations',  action='store_true', help='Disable the computation of extra-quantities.')
+    parser.add_argument('--textify',  action='store_false', help='Export text versions of cell attributes and lineage information.')
     parser.add_argument('-c', '--cellcycledir',  metavar='picked', type=str, help='Directory containing all Matlab files (lineages) with cell cycle information.')
     parser.add_argument('--complete_cc',  action='store_true', help='If passed, remove cells not mapped to cell cycle through a initiation --> division correspondence.')
     namespace = parser.parse_args(sys.argv[1:])
@@ -519,7 +520,7 @@ if __name__ == "__main__":
 
 
 ################################################
-# write dictionary
+# write
 ################################################
     print print_time(), "Writing new datafile..."
     ncells = len(data)
@@ -536,6 +537,42 @@ if __name__ == "__main__":
     with open(dest,'w') as fout:
         yaml.dump(allparams,stream=fout,default_flow_style=False, tags=None)
     print "{:<20s}{:<s}".format('fileout', dest)
+
+    if (namespace.textify):
+        # write text versions
+        cellref = data.values()[0]
+
+        scalar_attributes = [s for s in vars(cellref).keys() if not ( type(getattr(cellref,s))== list or type(getattr(cellref,s)) == np.ndarray)]
+        scalar_attributes_fmt = []
+        for s in scalar_attributes:
+            sa = getattr(cellref,s)
+
+            # number or not
+            try:
+                sa = float(sa)
+                if sa.is_integer():
+                    sa = int(sa)
+            except:
+                sa = str(sa)
+
+            if (type(sa) == int):
+                scalar_attributes_fmt.append('%-18d')
+            elif (type(sa) == float):
+                scalar_attributes_fmt.append('%-18.6g')
+            elif (type(sa) == str):
+                scalar_attributes_fmt.append('%s')
+            else:
+                print type(sa)
+                sys.exit("Problem in text formatting with attribute: {}".format(sa))
+
+        header = ",".join(scalar_attributes)
+        data_array = [[getattr(cell,s) for s in scalar_attributes] for cell in data.values()]
+        data_array = np.array(data_array)
+        fileout = os.path.join(ddir, dataname + '_filtered' + '.txt')
+        np.savetxt(X=data_array, fname=fileout, header=header, fmt=scalar_attributes_fmt)
+        print "{:<20s}{:<s}".format('fileout', fileout)
+
+
 
 #try:
 #    shutil.copyfile(paramfile,dest)
