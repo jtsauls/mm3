@@ -40,11 +40,12 @@ if __name__ == "__main__":
     # switches which may be overwritten
     param_file_path = 'yaml_templates/params_SJ110_100X.yaml'
     user_spec_fovs = []
+    nproc = 2
 
     # get switches and parameters
     try:
-        unixoptions="f:o:"
-        gnuoptions=["paramfile=","fov="]
+        unixoptions="f:o:j:"
+        gnuoptions=["paramfile=","fov=","nproc="]
         opts, args = getopt.getopt(sys.argv[1:],unixoptions,gnuoptions)
     except getopt.GetoptError:
         mm3.warning('No arguments detected (-f -o), using hardcoded parameters.')
@@ -59,6 +60,11 @@ if __name__ == "__main__":
             except:
                 mm3.warning("Couldn't convert -o argument to an integer:",arg)
                 raise ValueError
+        if opt in ['-j', '--nproc']:
+            try:
+                nproc = int(arg)
+            except ValueError:
+                mm3.warning("Could not convert \"{}\" to an integer".format(arg))
 
     # Load the project parameters file & initialized the helper library
     p = mm3.init_mm3_helpers(param_file_path)
@@ -100,7 +106,7 @@ if __name__ == "__main__":
 
             for peak_id in ana_peak_ids:
                 # send to segmentation
-                mm3.segment_chnl_stack(fov_id, peak_id)
+                mm3.segment_chnl_stack(fov_id, peak_id,nproc=nproc)
 
         mm3.information("Finished segmentation.")
 
@@ -118,7 +124,7 @@ if __name__ == "__main__":
         for fov_id in fov_id_list:
             # update will add the output from make_lineages_function, which is a
             # dict of Cell entries, into Cells
-            Cells.update(mm3.make_lineages_fov(fov_id, specs))
+            Cells.update(mm3.make_lineages_fov(fov_id, specs,nproc=nproc))
 
         mm3.information("Finished lineage creation.")
 

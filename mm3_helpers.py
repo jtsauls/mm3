@@ -753,11 +753,13 @@ def make_masks(analyzed_imgs):
     #intiaize dictionary
     channel_masks = {}
 
+    """ test 20180521 - start
     # get the size of the images (hope they are the same)
     for img_k, img_v in analyzed_imgs.iteritems():
         image_rows = img_v['shape'][0] # x pixels
         image_cols = img_v['shape'][1] # y pixels
         break # just need one. using iteritems mean the whole dict doesn't load
+    # test 20180521 - end """
 
     # get the fov ids
     fovs = []
@@ -774,13 +776,18 @@ def make_masks(analyzed_imgs):
     for fov in fovs:
         # initialize a the dict and consensus mask
         channel_masks_1fov = {} # dict which holds channel masks {peak : [[y1, y2],[x1,x2]],...}
-        consensus_mask = np.zeros([image_rows, image_cols]) # mask for labeling
+        #consensus_mask = np.zeros([image_rows, image_cols]) # mask for labeling
 
         # bring up information for each image
         for img_k, img_v in analyzed_imgs.iteritems():
             # skip this one if it is not of the current fov
             if img_v['fov'] != fov:
                 continue
+
+            # get the size of the images (hope they are the same)
+            image_rows = img_v['shape'][0] # x pixels
+            image_cols = img_v['shape'][1] # y pixels
+            consensus_mask = np.zeros([image_rows, image_cols]) # mask for labeling
 
             # for each channel in each image make a single mask
             img_chnl_mask = np.zeros([image_rows, image_cols])
@@ -1192,7 +1199,7 @@ def copy_empty_stack(from_fov, to_fov, color='c1'):
     information("Saved empty channel for FOV %d." % to_fov)
 
 # Do subtraction for an fov over many timepoints
-def subtract_fov_stack(fov_id, specs, color='c1', method='phase'):
+def subtract_fov_stack(fov_id, specs, color='c1', method='phase',nproc=2):
     '''
     For a given FOV, loads the precomputed empty stack and does subtraction on
     all peaks in the FOV designated to be analyzed
@@ -1238,7 +1245,8 @@ def subtract_fov_stack(fov_id, specs, color='c1', method='phase'):
         subtract_pairs = zip(image_data, avg_empty_stack)
 
         # set up multiprocessing pool to do subtraction. Should wait until finished
-        pool = Pool(processes=params['num_analyzers'])
+        #pool = Pool(processes=params['num_analyzers'])
+        pool = Pool(nproc)
 
         if method == 'phase':
             subtracted_imgs = pool.map(subtract_phase, subtract_pairs, chunksize=10)
@@ -1350,7 +1358,7 @@ def subtract_fluor(image_pair):
     '''
     # get out data and pad
     cropped_channel, empty_channel = image_pair # [channel slice, empty slice]
-    
+
     # check frame size of cropped channel and background, always keep crop channel size the same
     crop_size = np.shape(cropped_channel)[:2]
     empty_size = np.shape(empty_channel)[:2]
@@ -1358,7 +1366,7 @@ def subtract_fluor(image_pair):
         if crop_size[0] > empty_size[0] or crop_size[1] > empty_size[1]:
             pad_row_length = max(crop_size[0]  - empty_size[0], 0) # prevent negatives
             pad_column_length = max(crop_size[1]  - empty_size[1], 0)
-            empty_channel = np.pad(empty_channel, 
+            empty_channel = np.pad(empty_channel,
                 [[np.int(.5*pad_row_length), pad_row_length-np.int(.5*pad_row_length)],
                 [np.int(.5*pad_column_length),  pad_column_length-np.int(.5*pad_column_length)],
                 [0,0]], 'edge')
@@ -1381,7 +1389,7 @@ def subtract_fluor(image_pair):
 ### functions that deal with segmentation and lineages
 
 # Do segmentation for an channel time stack
-def segment_chnl_stack(fov_id, peak_id):
+def segment_chnl_stack(fov_id, peak_id,nproc=2):
     '''
     For a given fov and peak (channel), do segmentation for all images in the
     subtracted .tif stack.
@@ -1399,7 +1407,8 @@ def segment_chnl_stack(fov_id, peak_id):
     sub_stack = load_stack(fov_id, peak_id, color='sub_{}'.format(params['phase_plane']))
 
     # set up multiprocessing pool to do segmentation. Will do everything before going on.
-    pool = Pool(processes=params['num_analyzers'])
+    #pool = Pool(processes=params['num_analyzers'])
+    pool = Pool(nproc)
 
     # send the 3d array to multiprocessing
     segmented_imgs = pool.map(segment_image, sub_stack, chunksize=8)
@@ -1536,7 +1545,7 @@ def segment_image(image):
     return labeled_image
 
 # finds lineages for all peaks in a fov
-def make_lineages_fov(fov_id, specs):
+def make_lineages_fov(fov_id, specs,nproc=2):
     '''
     For a given fov, create the lineages from the segmented images.
 
@@ -1563,7 +1572,8 @@ def make_lineages_fov(fov_id, specs):
     fov_and_peak_ids_list = [(fov_id, peak_id) for peak_id in ana_peak_ids]
 
     # set up multiprocessing pool. will complete pool before going on
-    pool = Pool(processes=params['num_analyzers'])
+    #pool = Pool(processes=params['num_analyzers'])
+    pool = Pool(nproc)
 
     # create the lineages for each peak individually
     # the output is a list of dictionaries
@@ -2338,7 +2348,7 @@ def foci_analysis(fov_id, peak_id, Cells):
     return
 
 def foci_cell(cell_id, cell, t0, image_data_seg, image_data_FL):
-    '''find foci in a cell, single instance to be called by the foci_analysis_pool for parallel processing. 
+    '''find foci in a cell, single instance to be called by the foci_analysis_pool for parallel processing.
     '''
     disp_l = []
     disp_w = []
@@ -2374,8 +2384,8 @@ def foci_cell(cell_id, cell, t0, image_data_seg, image_data_FL):
     cell.disp_w = disp_w
     cell.foci_h = foci_h
 # actual worker function for foci detection
-    
-def foci_analysis_pool(fov_id, peak_id, Cells):
+
+def foci_analysis_pool(fov_id, peak_id, Cells, nproc=2):
     '''Find foci in cells using a fluorescent image channel.
     This function works on a single peak and all the cells therein.'''
 
@@ -2398,7 +2408,8 @@ def foci_analysis_pool(fov_id, peak_id, Cells):
     tN = times_all[-1] # last time index
 
     # call foci_cell for each cell object
-    pool = Pool(processes=params['num_analyzers'])
+    #pool = Pool(processes=params['num_analyzers'])
+    pool = Pool(nproc)
     [pool.apply_async(foci_cell(cell_id, cell, t0, image_data_seg, image_data_FL)) for cell_id, cell in Cells.items()]
     pool.close()
     pool.join()
