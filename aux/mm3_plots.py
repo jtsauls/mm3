@@ -137,7 +137,7 @@ pnames = dict(sb=dict(label='birth length', symbol='L$_\mathrm{b}$',
              IS=dict(label='IS period', symbol='IS', unit='(minutes)'),
              TS=dict(label='TS period', symbol='TS', unit='(minutes)'),
 
-              segregation_delta=dict(label='added segregation length',
+             segregation_delta=dict(label='added segregation length',
                     symbol='$\Delta_\mathrm{seg}$',
                     symbol_ai = '\u03B4_seg',
                     unit='(' + '\u03BC' +'m)'),
@@ -245,6 +245,44 @@ def cells2_ccdf(Cells, add_volume=True):
     except:
         print('No nucleoid segregation or termination size data.')
         Cells_df = Cells_df[columns_no_seg].apply(pd.to_numeric)
+
+    # add birth and division volume
+    if add_volume:
+        Cells_df['birth_volume'] = ((Cells_df['sb'] - Cells_df['width']) * np.pi *
+                                    (Cells_df['width']/2)**2 +
+                                    (4/3) * np.pi * (Cells_df['width']/2)**3)
+        Cells_df['division_volume'] = ((Cells_df['sd'] - Cells_df['width']) * np.pi *
+                                       (Cells_df['width']/2)**2 +
+                                       (4/3) * np.pi * (Cells_df['width']/2)**3)
+
+    return Cells_df
+
+def cells2_segdf(Cells, add_volume=True):
+    '''
+    Take cell data (a dicionary of Cell objects) and return a dataframe. Looks for cell cycle info as well.
+    '''
+
+    # columns to include
+    columns_w_seg = ['fov', 'peak', 'birth_label',
+                   'birth_time', 'division_time',
+                   'sb', 'sd', 'width', 'delta', 'tau', 'elong_rate', 'septum_position',
+                   'segregation_time', 'segregation_length', 'segregation_volume',
+                   'S',
+                   'segregation_delta', 'segregation_delta_mother', 'segregation_length_mother']
+
+    # should not need this as of unet
+    # for cell_tmp in Cells:
+    #     Cells[cell_tmp].width = np.mean(Cells[cell_tmp].widths_w_div)
+
+    # Make dataframe for plotting variables
+    Cells_dict = cells2dict(Cells)
+    Cells_df = pd.DataFrame(Cells_dict).transpose() # must be transposed so data is in columns
+    Cells_df = Cells_df.sort_values(by=['fov', 'peak', 'birth_time', 'birth_label'])
+
+    try:
+        Cells_df = Cells_df[columns_w_seg].apply(pd.to_numeric)
+    except:
+        print('No nucleoid segregation data.')
 
     # add birth and division volume
     if add_volume:
@@ -954,7 +992,7 @@ def add_seg_info(Cells, matlab_df, time_int):
 
             attributes['S'] = (cell_tmp.division_time - attributes['segregation_time']) * time_int
 
-            if cell_tmp.initiation_time:
+            if hasattr(cell_tmp, 'initiation_time'):
                 attributes['IS'] = (attributes['segregation_time'] - cell_tmp.initiation_time) * time_int
                 attributes['TS'] = (attributes['segregation_time'] - cell_tmp.termination_time) * time_int
 
@@ -3461,7 +3499,7 @@ def plot_channel_traces(Cells, time_int=1.0, fl_plane='c2', alt_time='birth', fl
 
     return fig, ax
 
-def plot_lineage_images(Cells, fov_id, peak_id, Cells2=None, bgcolor='c1', fgcolor='seg', plot_tracks=True, trim_time=False, time_set=(0,100), t_adj=1):
+def plot_lineage_images(Cells, fov_id, peak_id, Cells2=None, bgcolor='c1', fgcolor='seg', plot_tracks=True, trim_time=False, time_set=(1,101), t_adj=0):
     '''
     Plot linages over images across time points for one FOV/peak.
     Parameters
@@ -3471,8 +3509,10 @@ def plot_lineage_images(Cells, fov_id, peak_id, Cells2=None, bgcolor='c1', fgcol
     Cells2 : second set of linages to overlay. Useful for comparing lineage output.
     plot_tracks : bool
         If to plot cell traces or not.
+    time_set : (int, int)
+        Tuple of ints (1-indexed like the images) indicating which time points to plot.
     t_adj : int
-        adjust time indexing for differences between t index of image and image number
+        adjust time indexing for differences between t index of image and image number. This is only for changing the numbers at the bottom of the image.
     '''
 
     # filter cells
@@ -3485,9 +3525,9 @@ def plot_lineage_images(Cells, fov_id, peak_id, Cells2=None, bgcolor='c1', fgcol
         image_data_seg = mm3.load_stack(fov_id, peak_id, color=fgcolor)
 
     if trim_time:
-        image_data_bg = image_data_bg[time_set[0]:time_set[1]]
+        image_data_bg = image_data_bg[time_set[0]-1:time_set[1]]
         if fgcolor:
-            image_data_seg = image_data_seg[time_set[0]:time_set[1]]
+            image_data_seg = image_data_seg[time_set[0]-1:time_set[1]]
 
     n_imgs = image_data_bg.shape[0]
     image_indicies = range(n_imgs)
@@ -3534,7 +3574,7 @@ def plot_lineage_images(Cells, fov_id, peak_id, Cells2=None, bgcolor='c1', fgcol
                 seg_relabeled[seg_relabeled == region.label] = int(rescaled_color_index)-0.1 # subtract small value to make it so there is not overlabeling
             ax[i].imshow(seg_relabeled, cmap=cmap, alpha=0.5, vmin=vmin, vmax=vmax)
 
-        ax[i].set_title(str(i + t_adj), color='white')
+        # ax[i].set_title(str(i + t_adj + time_set[0]), color='white')
 
     # save just the segmented images
     # lin_dir = params['experiment_directory'] + params['analysis_directory'] + 'lineages/'
@@ -3546,95 +3586,97 @@ def plot_lineage_images(Cells, fov_id, peak_id, Cells2=None, bgcolor='c1', fgcol
     # plt.close()
 
     # Annotate each cell with information
-    if plot_tracks:
-        for cell_id in Cells:
-            for n, t in enumerate(Cells[cell_id].times):
-                t -= t_adj # adjust for special indexing
-
-                # don't look at time points out of the interval
-                if trim_time:
-                    if t < time_set[0] or t >= time_set[1]-1:
-                        break
-
-                x = Cells[cell_id].centroids[n][1]
-                y = Cells[cell_id].centroids[n][0]
-
-                # add a circle at the centroid for every point in this cell's life
-                circle = mpatches.Circle(xy=(x, y), radius=2, color='white', lw=0, alpha=0.5)
-                ax[t].add_patch(circle)
-
-                # draw connecting lines between the centroids of cells in same lineage
-                try:
-                    if n < len(Cells[cell_id].times) - 1:
-                        # coordinates of the next centroid
-                        x_next = Cells[cell_id].centroids[n+1][1]
-                        y_next = Cells[cell_id].centroids[n+1][0]
-                        t_next = Cells[cell_id].times[n+1] - t_adj # adjust for special indexing
-
-                        # get coordinates for the whole figure
-                        coord1 = transFigure.transform(ax[t].transData.transform([x, y]))
-                        coord2 = transFigure.transform(ax[t_next].transData.transform([x_next, y_next]))
-
-                        # create line
-                        line = mpl.lines.Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
-                                                transform=fig.transFigure,
-                                                color='white', lw=1, alpha=0.5)
-
-                        # add it to plot
-                        fig.lines.append(line)
-                except:
-                    pass
-
-
-                # draw connecting between mother and daughters
-                try:
-                    if n == len(Cells[cell_id].times)-1 and Cells[cell_id].daughters:
-                        # daughter ids
-                        d1_id = Cells[cell_id].daughters[0]
-                        d2_id = Cells[cell_id].daughters[1]
-
-                        # both daughters should have been born at the same time.
-                        t_next = Cells[d1_id].times[0] - t_adj
-
-                        # coordinates of the two daughters
-                        x_d1 = Cells[d1_id].centroids[0][1]
-                        y_d1 = Cells[d1_id].centroids[0][0]
-                        x_d2 = Cells[d2_id].centroids[0][1]
-                        y_d2 = Cells[d2_id].centroids[0][0]
-
-                        # get coordinates for the whole figure
-                        coord1 = transFigure.transform(ax[t].transData.transform([x, y]))
-                        coordd1 = transFigure.transform(ax[t_next].transData.transform([x_d1, y_d1]))
-                        coordd2 = transFigure.transform(ax[t_next].transData.transform([x_d2, y_d2]))
-
-                        # create line and add it to plot for both
-                        for coord in [coordd1, coordd2]:
-                            line = mpl.lines.Line2D((coord1[0],coord[0]),(coord1[1],coord[1]),
-                                                    transform=fig.transFigure,
-                                                    color='white', lw=1, alpha=0.5, ls='dashed')
-                            # add it to plot
-                            fig.lines.append(line)
-                except:
-                    pass
+    if True:
+        # for cell_id in Cells:
+        #     for n, t in enumerate(Cells[cell_id].times):
+        #         ax_i = t - time_set[0] # convert time index to zero indexed axis index
+        #
+        #         # don't look at time points out of the interval
+        #         if trim_time:
+        #             if t < time_set[0] or t > time_set[1]:
+        #                 continue
+        #
+        #         x = Cells[cell_id].centroids[n][1]
+        #         y = Cells[cell_id].centroids[n][0]
+        #
+        #         # add a circle at the centroid for every point in this cell's life
+        #         circle = mpatches.Circle(xy=(x, y), radius=2, color='white', lw=0, alpha=0.5)
+        #         ax[ax_i].add_patch(circle)
+        #
+        #         # draw connecting lines between the centroids of cells in same lineage
+        #         try:
+        #             if n < len(Cells[cell_id].times) - 1:
+        #                 # coordinates of the next centroid
+        #                 x_next = Cells[cell_id].centroids[n+1][1]
+        #                 y_next = Cells[cell_id].centroids[n+1][0]
+        #                 ax_next = Cells[cell_id].times[n+1] - time_set[0] # adjust for indexing
+        #
+        #                 # get coordinates for the whole figure
+        #                 coord1 = transFigure.transform(ax[ax_i].transData.transform([x, y]))
+        #                 coord2 = transFigure.transform(ax[ax_next].transData.transform([x_next, y_next]))
+        #
+        #                 # create line
+        #                 line = mpl.lines.Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
+        #                                         transform=fig.transFigure,
+        #                                         color='white', lw=1, alpha=0.5)
+        #
+        #                 # add it to plot
+        #                 fig.lines.append(line)
+        #         except:
+        #             # this is cells being connecting out of frame to the right
+        #             pass
+        #
+        #
+        #         # draw connecting between mother and daughters
+        #         try:
+        #             if n == len(Cells[cell_id].times)-1 and Cells[cell_id].daughters:
+        #                 # daughter ids
+        #                 d1_id = Cells[cell_id].daughters[0]
+        #                 d2_id = Cells[cell_id].daughters[1]
+        #
+        #                 # both daughters should have been born at the same time.
+        #                 ax_next = Cells[d1_id].times[0] - time_set[0]
+        #
+        #                 # coordinates of the two daughters
+        #                 x_d1 = Cells[d1_id].centroids[0][1]
+        #                 y_d1 = Cells[d1_id].centroids[0][0]
+        #                 x_d2 = Cells[d2_id].centroids[0][1]
+        #                 y_d2 = Cells[d2_id].centroids[0][0]
+        #
+        #                 # get coordinates for the whole figure
+        #                 coord1 = transFigure.transform(ax[ax_i].transData.transform([x, y]))
+        #                 coordd1 = transFigure.transform(ax[ax_next].transData.transform([x_d1, y_d1]))
+        #                 coordd2 = transFigure.transform(ax[ax_next].transData.transform([x_d2, y_d2]))
+        #
+        #                 # create line and add it to plot for both
+        #                 for coord in [coordd1, coordd2]:
+        #                     line = mpl.lines.Line2D((coord1[0],coord[0]),(coord1[1],coord[1]),
+        #                                             transform=fig.transFigure,
+        #                                             color='white', lw=1, alpha=0.5, ls='dashed')
+        #                     # add it to plot
+        #                     fig.lines.append(line)
+        #         except:
+        #             # these are cells trying to be connected to out of frame to the right
+        #             pass
 
         # this is for plotting the traces from a second set of cells
         if Cells2 and plot_tracks:
             Cells2 = find_cells_of_fov_and_peak(Cells2, fov_id, peak_id)
             for cell_id in Cells2:
                 for n, t in enumerate(Cells2[cell_id].times):
-                    t -= t_adj
+                    ax_i = t - time_set[0] # convert time index to zero indexed axis index
 
                     # don't look at time points out of the interval
                     if trim_time:
-                        if t < time_set[0] or t >= time_set[1]-1:
-                            break
+                        if t < time_set[0] or t > time_set[1]:
+                            continue
 
                     x = Cells2[cell_id].centroids[n][1]
                     y = Cells2[cell_id].centroids[n][0]
 
                     # add a circle at the centroid for every point in this cell's life
-                    circle = mpatches.Circle(xy=(x, y), radius=2, color='yellow', lw=0, alpha=0.25)
-                    ax[t].add_patch(circle)
+                    circle = mpatches.Circle(xy=(x, y), radius=2, color='yellow', lw=0, alpha=0.5)
+                    ax[ax_i].add_patch(circle)
 
                     # draw connecting lines between the centroids of cells in same lineage
                     try:
@@ -3642,20 +3684,21 @@ def plot_lineage_images(Cells, fov_id, peak_id, Cells2=None, bgcolor='c1', fgcol
                             # coordinates of the next centroid
                             x_next = Cells2[cell_id].centroids[n+1][1]
                             y_next = Cells2[cell_id].centroids[n+1][0]
-                            t_next = Cells2[cell_id].times[n+1] - t_adj
+                            ax_next = Cells2[cell_id].times[n+1] - time_set[0]
 
                             # get coordinates for the whole figure
-                            coord1 = transFigure.transform(ax[t].transData.transform([x, y]))
-                            coord2 = transFigure.transform(ax[t_next].transData.transform([x_next, y_next]))
+                            coord1 = transFigure.transform(ax[ax_i].transData.transform([x, y]))
+                            coord2 = transFigure.transform(ax[ax_next].transData.transform([x_next, y_next]))
 
                             # create line
                             line = mpl.lines.Line2D((coord1[0],coord2[0]),(coord1[1],coord2[1]),
                                                     transform=fig.transFigure,
-                                                    color='yellow', lw=1, alpha=0.25)
+                                                    color='yellow', lw=1, alpha=0.5)
 
                             # add it to plot
                             fig.lines.append(line)
                     except:
+                        # these should be connecting lines that are trying to go to the next out of frame cell
                         pass
 
                     # draw connecting between mother and daughters
@@ -3666,7 +3709,7 @@ def plot_lineage_images(Cells, fov_id, peak_id, Cells2=None, bgcolor='c1', fgcol
                             d2_id = Cells2[cell_id].daughters[1]
 
                             # both daughters should have been born at the same time.
-                            t_next = Cells2[d1_id].times[0] - t_adj
+                            ax_next = Cells2[d1_id].times[0] - time_set[0]
 
                             # coordinates of the two daughters
                             x_d1 = Cells2[d1_id].centroids[0][1]
@@ -3675,26 +3718,20 @@ def plot_lineage_images(Cells, fov_id, peak_id, Cells2=None, bgcolor='c1', fgcol
                             y_d2 = Cells2[d2_id].centroids[0][0]
 
                             # get coordinates for the whole figure
-                            coord1 = transFigure.transform(ax[t].transData.transform([x, y]))
-                            coordd1 = transFigure.transform(ax[t_next].transData.transform([x_d1, y_d1]))
-                            coordd2 = transFigure.transform(ax[t_next].transData.transform([x_d2, y_d2]))
+                            coord1 = transFigure.transform(ax[ax_i].transData.transform([x, y]))
+                            coordd1 = transFigure.transform(ax[ax_next].transData.transform([x_d1, y_d1]))
+                            coordd2 = transFigure.transform(ax[ax_next].transData.transform([x_d2, y_d2]))
 
                             # create line and add it to plot for both
                             for coord in [coordd1, coordd2]:
                                 line = mpl.lines.Line2D((coord1[0],coord[0]),(coord1[1],coord[1]),
                                                         transform=fig.transFigure,
-                                                        color='yellow', lw=1, alpha=0.25, ls='dashed')
+                                                        color='yellow', lw=1, alpha=0.5, ls='dashed')
                                 # add it to plot
                                 fig.lines.append(line)
                     except:
+                        # this is trying to to connect to cells out of frame to the right
                         pass
-
-            # this is for putting cell id on first time cell appears and when it divides
-            # this is broken, need to translate coordinates to correct location on figure.
-            # if n == 0 or n == len(Cells[cell_id].times)-1:
-            #     print(x/100.0, y/100.0, cell_id[9:])
-            #     ax[t].text(x/100.0, y/100.0, cell_id[9:], color='red', size=10, ha='center', va='center')
-
     return fig, ax
 
 ### Miscelaneous
