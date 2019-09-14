@@ -295,7 +295,6 @@ def cells2_segdf(Cells, add_volume=True):
 
     return Cells_df
 
-
 def cells2dict(Cells):
     '''
     Take a dictionary of Cells and returns a dictionary of dictionaries
@@ -968,7 +967,7 @@ def add_seg_info(Cells, matlab_df, time_int):
 
             # find index of intiation in that cell. Note if the time was recorded with real time or not
             try:
-                # index in the initiation cell
+                # index in the segregation cell
                 seg_index = cell_tmp.times.index(attributes['segregation_time'])
             except:
                 # these cells do not have lengths at this time.
