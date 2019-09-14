@@ -1553,7 +1553,7 @@ def plot_time(data, exps, plot_param=None, x_param='birth_time', fig=None, ax=No
 
     for exp in exps:
         # Cells = data[key]['Cells']
-        df = data[exp]['df']
+        df = data[exp][df_key]
         time_int = data[exp]['t_int']
         lc = data[exp]['color']
         try:
@@ -3140,7 +3140,9 @@ def plot_saw_tooth_foci(Cells, fl_plane='c2', alt_time='birth', time_int=1, fl_i
                     max_c2_int = max(profile_t)
                 if min(profile_t) < min_c2_int:
                     min_c2_int = min(profile_t)
-            cmap_c2 = sns.cubehelix_palette(start=0, rot=-0.4, dark=0.2, light=1,
+            # fl_color = 0 # green
+            fl_color = 1 # purple
+            cmap_c2 = sns.cubehelix_palette(start=fl_color, rot=-0.4, dark=0.2, light=1,
                                                          as_cmap=True)
             color_norm_c2 = mpl.colors.Normalize(vmin=min_c2_int, vmax=max_c2_int)
 
