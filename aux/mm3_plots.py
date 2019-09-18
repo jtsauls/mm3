@@ -3500,7 +3500,7 @@ def plot_channel_traces(Cells, time_int=1.0, fl_plane='c2', alt_time='birth', fl
 
     return fig, ax
 
-def plot_lineage_images(fov_id, peak_id, bgcolor='c1', fgcolor='seg', plot_tracks=True, Cells, Cells2=None, trim_time=True, time_set=(1,101), t_adj=0):
+def plot_lineage_images(fov_id, peak_id, bgcolor='c1', fgcolor='seg', Cells=None, Cells2=None, trim_time=True, time_set=(1,101), t_adj=0):
     '''
     Plot linages over images across time points for one FOV/peak.
     Parameters
@@ -3509,12 +3509,14 @@ def plot_lineage_images(fov_id, peak_id, bgcolor='c1', fgcolor='seg', plot_track
         FOV to plot.
     peak_id int
         Peak to plot.
-    bgcolor : Designation of background to use.
-    fgcolor : Designation of foreground to use. Usually a segmentation image.
-    plot_tracks : bool
-        If to plot cell traces or not.
-    Cells : Cells for which to plot tracks. Will filter for FOV and peak.
-    Cells2 : second set of linages to overlay. Useful for comparing lineage outputs.
+    bgcolor : Color plane or None
+        Designation of background to use.
+    fgcolor : Color plane or None
+        Designation of foreground to use. Usually a segmentation image.
+    Cells : None or dict of Cell objects.
+        Cells for which to plot tracks. Leave as None for no tracks. Will filter for FOV and peak.
+    Cells2 : None or dict of Cell objects.
+        Second set of linages to overlay. Useful for comparing lineage outputs.
     trim_time : bool
         Whether to trim to a subset of images.
     time_set : (int, int)
@@ -3522,9 +3524,6 @@ def plot_lineage_images(fov_id, peak_id, bgcolor='c1', fgcolor='seg', plot_track
     t_adj : int
         adjust time indexing for differences between t index of image and image number. This is only for changing the numbers at the bottom of the image.
     '''
-
-    # filter cells
-    Cells = find_cells_of_fov_and_peak(Cells, fov_id, peak_id)
 
     # load subtracted and segmented data
     image_data_bg = mm3.load_stack(fov_id, peak_id, color=bgcolor)
@@ -3549,6 +3548,7 @@ def plot_lineage_images(fov_id, peak_id, bgcolor='c1', fgcolor='seg', plot_track
         vmax = 100 # max y value
         cmap = mpl.colors.ListedColormap(sns.husl_palette(vmax, h=0.5, l=.8, s=1))
         cmap.set_under(color='black')
+        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
 
     # Trying to get the image size down
     figxsize = image_data_bg.shape[2] * n_imgs / 100.0
@@ -3575,14 +3575,40 @@ def plot_lineage_images(fov_id, peak_id, bgcolor='c1', fgcolor='seg', plot_track
         if fgcolor:
             # make a new version of the segmented image where the
             # regions are relabeled by their y centroid position.
-            # scale it so it falls within 100.
-            seg_relabeled = image_data_seg[i].copy().astype(np.float)
+            # convert to rgba to use alpha for area outside segments
+            # seg_relabeled = image_data_seg[i].copy().astype(np.float)
+
+            # convert to rgba
+            alpha = np.ones_like(image_data_seg[i]).astype(np.float)
+            alpha[image_data_seg[i] == 0] = 0
+            seg_r = np.zeros_like(image_data_seg[i]).astype(float)
+            seg_g = np.ones_like(image_data_seg[i]).astype(np.float)
+            seg_b = np.zeros_like(image_data_seg[i]).astype(np.float)
+            # print(seg_rgba.shape)
+
             for region in regions_by_time[i]:
                 rescaled_color_index = region.centroid[0]/image_data_seg.shape[1] * vmax
-                seg_relabeled[seg_relabeled == region.label] = int(rescaled_color_index)-0.1 # subtract small value to make it so there is not overlabeling
-            ax[i].imshow(seg_relabeled, cmap=cmap, alpha=0.5, vmin=vmin, vmax=vmax)
+                rgb = cmap(norm(rescaled_color_index))
+                # print(rgb)
+                seg_r[image_data_seg[i] == region.label] = rgb[0]
+                seg_g[image_data_seg[i] == region.label] = rgb[1]
+                seg_b[image_data_seg[i] == region.label] = rgb[2]
 
-        # ax[i].set_title(str(i + t_adj + time_set[0]), color='white')
+                # seg_relabeled[seg_relabeled == region.label] = int(rescaled_color_index)-0.1 # subtract small value to make it so there is no overlabeling
+
+                # rescaled_color_float = 1 - (region.centroid[0]/image_data_seg.shape[1])
+                # seg_relabeled[seg_relabeled == region.label] = rescaled_color_float
+
+            # stack up colors
+            seg_rgba = np.stack([seg_r, seg_g, seg_b, alpha])
+            seg_rgba = np.moveaxis(seg_rgba, 0, -1)
+
+            # ax[i].imshow(seg_relabeled, cmap=cmap, alpha=0.75, vmin=vmin, vmax=vmax)
+            ax[i].imshow(seg_rgba)
+
+        # add timestamp
+        ax[i].text(0.5, 0.05, str(i + time_set[0] + t_adj),
+                   horizontalalignment='center', verticalalignment='center', transform=ax[i].transAxes, color='white', fontsize=8)
 
     # save just the segmented images
     # lin_dir = params['experiment_directory'] + params['analysis_directory'] + 'lineages/'
@@ -3594,7 +3620,9 @@ def plot_lineage_images(fov_id, peak_id, bgcolor='c1', fgcolor='seg', plot_track
     # plt.close()
 
     # Annotate each cell with information
-    if plot_tracks:
+    if Cells:
+        # filter cells
+        Cells = find_cells_of_fov_and_peak(Cells, fov_id, peak_id)
         for cell_id in Cells:
             for n, t in enumerate(Cells[cell_id].times):
                 ax_i = t - time_set[0] # convert time index to zero indexed axis index
@@ -3668,7 +3696,7 @@ def plot_lineage_images(fov_id, peak_id, bgcolor='c1', fgcolor='seg', plot_track
                     pass
 
         # this is for plotting the traces from a second set of cells
-        if Cells2 and plot_tracks:
+        if Cells2:
             Cells2 = find_cells_of_fov_and_peak(Cells2, fov_id, peak_id)
             for cell_id in Cells2:
                 for n, t in enumerate(Cells2[cell_id].times):
@@ -3740,6 +3768,13 @@ def plot_lineage_images(fov_id, peak_id, bgcolor='c1', fgcolor='seg', plot_track
                     except:
                         # this is trying to to connect to cells out of frame to the right
                         pass
+
+
+    # grey out all but middle panel
+    for ax_i in range(len(ax)):
+        if ax_i != 7:
+            ax[ax_i].imshow(np.zeros_like(image_data_bg[i]), cmap=plt.cm.gray, alpha=0.4, zorder=3)
+
     return fig, ax
 
 ### Miscelaneous
