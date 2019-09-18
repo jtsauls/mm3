@@ -44,7 +44,7 @@ from skimage.measure import regionprops # used for creating lineages
 from skimage.measure import profile_line # used for ring an nucleoid analysis
 from skimage import util, measure, transform, feature
 from skimage.external import tifffile as tiff
-from sklearn import metrics
+# from sklearn import metrics
 
 # deep learning
 import tensorflow as tf # ignore message about how tf was compiled
