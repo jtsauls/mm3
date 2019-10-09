@@ -1,7 +1,6 @@
 # mm3
 
 # mm3 Overview
-# Updated October 2017
 
 This is an overview of how to use mm3. Refer to the individual guides referenced in this document for more specific information about usage and function of each script.
 
