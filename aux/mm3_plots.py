@@ -224,12 +224,12 @@ def cells2_ccdf(Cells, add_volume=True):
                    'true_initiation_volume', 'initiation_volume',
                    'unit_cell', 'initiation_delta',
                    'B', 'C', 'D', 'tau_cyc',
-                   'segregation_time', 'segregation_length', 'segregation_volume',
                    'termination_length', 'termination_volume',
+                   'segregation_time', 'segregation_length', 'segregation_volume',
                    'S', 'IS', 'TS',
                    'segregation_delta', 'termination_delta',
                    'segregation_delta_mother', 'segregation_length_mother']
-    columns_no_seg = columns_w_seg[:25]
+    columns_no_seg = columns_w_seg[:27]
 
     # should not need this as of unet
     # for cell_tmp in Cells:
@@ -243,7 +243,7 @@ def cells2_ccdf(Cells, add_volume=True):
     try:
         Cells_df = Cells_df[columns_w_seg].apply(pd.to_numeric)
     except:
-        print('No nucleoid segregation or termination size data.')
+        print('No nucleoid segregation size data.')
         Cells_df = Cells_df[columns_no_seg].apply(pd.to_numeric)
 
     # add birth and division volume
@@ -1046,7 +1046,7 @@ def add_termination_info(Cells):
                 ter_index = cell_tmp.times.index(cell_tmp.termination_time)
             except:
                 # these cells do not have lengths at this time.
-                print('{} with termination time {} and n_oc {}.'.format(cell_id, cell_tmp.termination_time, cell_tmp.n_oc))
+                # print('No length for {} with termination time {} and n_oc {}.'.format(cell_id, cell_tmp.termination_time, cell_tmp.n_oc))
 
                 for key, value in attributes.items():
                     setattr(cell_tmp, key, value)
