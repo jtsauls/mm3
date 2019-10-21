@@ -257,6 +257,26 @@ def cells2_ccdf(Cells, add_volume=True):
 
     return Cells_df
 
+def cells2_ccdf_csv(Cells, add_volume=True):
+    '''
+    Take cell data (a dicionary of Cell objects) and return a dataframe. Looks for cell cycle info as well.
+    '''
+
+    # columns to include
+    columns = ['birth_time', 'division_time', 'initiation_time',
+                'sb', 'sd', 'width', 'delta', 'tau', 'elong_rate', 'septum_position',
+                'n_oc', 'C', 'D', 'tau_cyc',
+                'initiation_length', 'initiation_delta', 'daughters']
+
+    # Make dataframe for plotting variables
+    Cells_dict = cells2dict(Cells)
+    Cells_df = pd.DataFrame(Cells_dict).transpose() # must be transposed so data is in columns
+    Cells_df = Cells_df.sort_values(by=['fov', 'peak', 'birth_time', 'birth_label'])
+
+    Cells_df = Cells_df[columns]
+
+    return Cells_df
+
 def cells2_segdf(Cells, add_volume=True):
     '''
     Take cell data (a dicionary of Cell objects) and return a dataframe. Looks for cell cycle info as well.
