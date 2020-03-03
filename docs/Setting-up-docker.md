@@ -213,7 +213,9 @@ You should be good to go.
 
 #### 3.5.2 Connecting to the host's display in OSX
 
-We need to install X11 with XQuartz as well as socat. You can install both with brew. See [this tutorial](https://cntnr.io/running-guis-with-docker-on-mac-os-x-a14df6a76efc).
+We need to install X11 with XQuartz as well as socat. You can install both with brew. See [this tutorial](https://cntnr.io/running-guis-with-docker-on-mac-os-x-a14df6a76efc). Note that xquartz required the following install command as of March 2020.
+
+`brew cask install xquartz`
 
 With those installed, we start an X11 tunnel in a separate terminal window with:
 
