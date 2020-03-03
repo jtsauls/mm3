@@ -26,7 +26,8 @@ plt.rcParams['axes.linewidth']=0.5
 
 from skimage.exposure import rescale_intensity # for displaying in GUI
 from skimage import io, morphology, segmentation
-from scipy.misc import imresize
+# from scipy.misc import imresize
+from PIL import Image
 from skimage.external import tifffile as tiff
 import multiprocessing
 from multiprocessing import Pool
@@ -803,11 +804,16 @@ def preload_images(specs, fov_id_list):
             image_data = mm3.load_stack(fov_id, peak_id, color=p['phase_plane'])
             UI_images[fov_id][peak_id] = {'first' : None, 'last' : None} # init dictionary
              # phase image at t=0. Rescale intenstiy and also cut the size in half
+            # old and new image size
+            img_size_old = image_data[first_image,:,:].shape()
+            img_size_new = (int(img_size_old[0]/2), int(image_size_old[1]/2))
             first_image = p['channel_picker']['first_image']
-            UI_images[fov_id][peak_id]['first'] = imresize(image_data[first_image,:,:], 0.5)
+            UI_images[fov_id][peak_id]['first'] = np.array(Image.fromarray(image_data[first_image,:,:]).resize(img_size_new))
+             # imresize(image_data[first_image,:,:], 0.5)
             last_image = p['channel_picker']['last_image']
             # phase image at end
-            UI_images[fov_id][peak_id]['last'] = imresize(image_data[last_image,:,:], 0.5)
+            UI_images[fov_id][peak_id]['last'] = np.array(Image.fromarray(image_data[last_image,:,:]).resize(img_size_new))
+             # imresize(image_data[last_image,:,:], 0.5)
 
     return UI_images
 
