@@ -56,9 +56,9 @@ if __name__ == "__main__":
     parser.add_argument('-t', '--traindir', type=str,
                         required=True, help='Absolute path to the directory where you want your "images" and "masks" training data directories to be created and images to be saved.')
     parser.add_argument('-c', '--channel', type=int,
-                        required=False, default=1,
+                        required=False,
                         help='Which channel, e.g. phase or some fluorescence image, should be used for creating masks. \
-                            Accepts integers. Default is 1, which is usually your phase contrast images.')
+                            Accepts integers. Default is phase_channel parameter.')
     parser.add_argument('-n', '--no_prior_mask', action='store_true',
                         help='Apply this argument is you are making masks de novo, i.e., if no masks exist yet for your images.')
     namespace = parser.parse_args()
@@ -83,13 +83,18 @@ if __name__ == "__main__":
     else:
         user_spec_fovs = []
 
-    if not os.path.exists(p['seg_dir']):
+    if not os.path.exists(p['seg_dir']) and not namespace.no_prior_mask:
         sys.exit("Exiting: Segmentation directory, {}, not found.".format(p['seg_dir']))
     if not os.path.exists(p['chnl_dir']):
         sys.exit("Exiting: Channel directory, {}, not found.".format(p['chnl_dir']))
 
     # set segmentation image name for segmented images
-    p['seg_img'] = 'seg_otsu' ## be careful here, it is lookgin for segmented images
+    # *** This should be a parameter
+    p['seg_img'] = 'seg_otsu' ## be careful here, it is looking for segmented images
+
+    # default plane on which to draw masks
+    if not namespace.channel:
+        namespace.channel = p['phase_plane']
 
     specs = mm3.load_specs()
     # make list of FOVs to process (keys of channel_mask file)
@@ -101,18 +106,58 @@ if __name__ == "__main__":
     # get paired phase file names and mask file names for each fov
     fov_filename_dict = {}
     for fov_id in fov_id_list:
-        if namespace.no_prior_mask:
-            mask_filenames = None
-        else:
-            mask_filenames = [os.path.join(p['seg_dir'],fname) for fname in glob.glob(os.path.join(p['seg_dir'],'*xy{:0=3}*{}.tif'.format(fov_id,p['seg_img'])))]
-        image_filenames = [fname.replace(p['seg_dir'], p['chnl_dir']).replace(p['seg_img'], 'c{}'.format(namespace.channel)) for fname in mask_filenames]
-
         fov_filename_dict[fov_id] = []
-        if mask_filenames is not None:
-            for i in range(len(mask_filenames)):
-                fov_filename_dict[fov_id].append((image_filenames[i],mask_filenames[i]))
-        else:
-            fov_filename_dict[fov_id].append((image_filenames[i], None))
+
+        # get all potential masks to check for existance
+        if not namespace.no_prior_mask:
+            mask_filenames = [os.path.join(p['seg_dir'],fname) for fname in glob.glob(os.path.join(p['seg_dir'],'*xy{:0=3}*{}.tif'.format(fov_id,p['seg_img'])))]
+
+        # Determine which channels should be used in GUI, and if they have masks
+        for peak_id, spec in specs[fov_id].items():
+            if spec == 1:
+                channel_filename = os.path.join(p['chnl_dir'],
+                    '{}_xy{:0=3}_p{:0=4}_{}.tif'.format(p['experiment_name'], fov_id, peak_id, namespace.channel))
+
+                if not namespace.no_prior_mask:
+                    mask_filename = os.path.join(p['seg_dir'],
+                        '{}_xy{:0=3}_p{:0=4}_{}.tif'.format(p['experiment_name'], fov_id, peak_id, p['seg_img']))
+                    print(mask_filename)
+
+                    if mask_filename in mask_filenames:
+                        fov_filename_dict[fov_id].append((channel_filename, mask_filename))
+                    else:
+                        mask_filename = None
+
+                fov_filename_dict[fov_id].append((channel_filename, mask_filename))
+                print(channel_filename, mask_filename)
+
+
+        # image_filenames = [os.path.join(p['chnl_dir'],fname) for fname in glob.glob(os.path.join(p['chnl_dir'],'*xy{:0=3}*{}.tif'.format(fov_id,p['phase_plane'])))]
+        #
+        # if namespace.no_prior_mask:
+        #     mask_filenames = None
+        #     for i in range(len(image_filenames)):
+        #         fov_filename_dict[fov_id].append((image_filenames[i], None))
+        #
+        # else:
+        #     # I am not sure if the below way will keep the order correct, so this was an attempt at a different way
+        #     # mask_filenames = [fname.replace(p['chnl_dir'], p['seg_dir']).replace(namespace.channel, 'c{}'.format(p['seg_img'])) for fname in mask_filenames]
+        #
+        #     mask_filenames = [os.path.join(p['seg_dir'],fname) for fname in glob.glob(os.path.join(p['seg_dir'],'*xy{:0=3}*{}.tif'.format(fov_id,p['seg_img'])))]
+        #
+        #     for i in range(len(image_filenames)):
+        #         fov_filename_dict[fov_id].append((image_filenames[i],mask_filenames[i]))
+
+            # image file names were made off of mask names, but makes no sense if there are no masks.
+            # image_filenames = [fname.replace(p['seg_dir'], p['chnl_dir']).replace(p['seg_img'], 'c{}'.format(namespace.channel)) for fname in mask_filenames]
+
+        # fov_filename_dict[fov_id] = []
+
+        # for i in range(len(image_filenames)):
+        #     if mask_filenames is not None:
+        #         fov_filename_dict[fov_id].append((image_filenames[i],mask_filenames[i]))
+        #     else:
+        #         fov_filename_dict[fov_id].append((image_filenames[i], None))
 
     # print([names for names in fov_filename_dict[1]]) # for debugging
 

@@ -117,9 +117,8 @@ def init_mm3_helpers(param_file_path):
     else:
         params['use_jd'] = False
 
-    ## *** Fix this, need to change yaml template. 
-    # if not 'save_predictions' in params['segment']['unet'].keys():
-    #     params['segment']['unet']['save_predictions'] = False
+    if not 'save_predictions' in params['segment']['unet'].keys():
+        params['segment']['unet']['save_predictions'] = False
 
     return params
 
