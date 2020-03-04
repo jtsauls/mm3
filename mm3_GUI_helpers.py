@@ -203,7 +203,7 @@ class Window(QMainWindow):
 
 class OverlayImgsWidget(QWidget):
 
-        def __init__(self,parent,imgPaths,fov_id_list,training_dir):
+        def __init__(self, parent, imgPaths, fov_id_list, training_dir):
                 super(OverlayImgsWidget, self).__init__(parent)
 
                 self.imgLayout = QGridLayout()
@@ -214,10 +214,10 @@ class OverlayImgsWidget(QWidget):
                 # self.maskImgPaths = [paths[1] for paths in imgPaths]
                 # self.phaseImgPaths = [paths[0] for paths in imgPaths]
 
-                names = ['image','mask'] # image has to be after mask to place image on top
-                positions = [(0,0),(0,0)]
+                names = ['image', 'mask'] # image has to be after mask to place image on top
+                positions = [(0,0), (0,0)]
 
-                for name,position in zip(names,positions):
+                for name, position in zip(names, positions):
                         if name == '':
                                 continue
                         if name == 'mask':
@@ -708,24 +708,24 @@ class PhaseWidget(QWidget):
                 # saveImg.save(savePath)
                 io.imsave(savePath, self.img)
 
-if __name__ == "__main__":
-
-        imgPaths = {1:[('/home/wanglab/Users_local/Jeremy/Imaging/20190214/analysis/channels/20190214_JDW3418_xy001_p0028_c1.tif',
-                     '/home/wanglab/Users_local/Jeremy/Imaging/20190214/analysis/segmented/20190214_JDW3418_xy001_p0028_seg_unet.tif'),
-                    ('/home/wanglab/Users_local/Jeremy/Imaging/20190214/analysis/channels/20190214_JDW3418_xy001_p0039_c1.tif',
-                     '/home/wanglab/Users_local/Jeremy/Imaging/20190214/analysis/segmented/20190214_JDW3418_xy001_p0039_seg_unet.tif')],
-                    2:[('/home/wanglab/Users_local/Jeremy/Imaging/20190214/analysis/channels/20190214_JDW3418_xy001_p0127_c1.tif',
-                        '/home/wanglab/Users_local/Jeremy/Imaging/20190214/analysis/segmented/20190214_JDW3418_xy001_p0127_seg_unet.tif'),
-                       ('/home/wanglab/Users_local/Jeremy/Imaging/20190214/analysis/channels/20190214_JDW3418_xy001_p0104_c1.tif',
-                        '/home/wanglab/Users_local/Jeremy/Imaging/20190214/analysis/segmented/20190214_JDW3418_xy001_p0104_seg_unet.tif')]}
-
-        fov_id_list = [1,2]
-
-        training_dir = '/home/wanglab/sandbox/pyqtpainter/commonDir'
-
-        init_params('/home/wanglab/Users_local/Jeremy/Imaging/20190214/20190214_params_Unet.yaml')
-
-        app = QApplication(sys.argv)
-        window = Window(imgPaths=imgPaths, fov_id_list=fov_id_list, training_dir=training_dir)
-        window.show()
-        app.exec_()
+# if __name__ == "__main__":
+#
+        # imgPaths = {1:[('/home/wanglab/Users_local/Jeremy/Imaging/20190214/analysis/channels/20190214_JDW3418_xy001_p0028_c1.tif',
+        #              '/home/wanglab/Users_local/Jeremy/Imaging/20190214/analysis/segmented/20190214_JDW3418_xy001_p0028_seg_unet.tif'),
+        #             ('/home/wanglab/Users_local/Jeremy/Imaging/20190214/analysis/channels/20190214_JDW3418_xy001_p0039_c1.tif',
+        #              '/home/wanglab/Users_local/Jeremy/Imaging/20190214/analysis/segmented/20190214_JDW3418_xy001_p0039_seg_unet.tif')],
+        #             2:[('/home/wanglab/Users_local/Jeremy/Imaging/20190214/analysis/channels/20190214_JDW3418_xy001_p0127_c1.tif',
+        #                 '/home/wanglab/Users_local/Jeremy/Imaging/20190214/analysis/segmented/20190214_JDW3418_xy001_p0127_seg_unet.tif'),
+        #                ('/home/wanglab/Users_local/Jeremy/Imaging/20190214/analysis/channels/20190214_JDW3418_xy001_p0104_c1.tif',
+        #                 '/home/wanglab/Users_local/Jeremy/Imaging/20190214/analysis/segmented/20190214_JDW3418_xy001_p0104_seg_unet.tif')]}
+        #
+        # fov_id_list = [1,2]
+        #
+        # training_dir = '/home/wanglab/sandbox/pyqtpainter/commonDir'
+        #
+        # init_params('/home/wanglab/Users_local/Jeremy/Imaging/20190214/20190214_params_Unet.yaml')
+        #
+        # app = QApplication(sys.argv)
+        # window = Window(imgPaths=imgPaths, fov_id_list=fov_id_list, training_dir=training_dir)
+        # window.show()
+        # app.exec_()
